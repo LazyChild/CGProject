@@ -1,12 +1,11 @@
-var drawPixel = function (context, p) {
+var drawPixel = function (context, p, color) {
     // uses the canvas api
-    context.fillStyle = "black";
+    if (color) {
+        context.fillStyle = "rgb(" + color.r + "," +color.g + "," + color.b + ")";
+    } else {
+        context.fillStyle = "black";
+    }
     context.fillRect(p.x, p.y, 1, 1);
-};
-
-var getPixel = function (context, p) {
-    var data = context.getImageData(p.x, p.y, 1, 1).data;
-    return data[0] || data[1] || data[2] || data[3];
 };
 
 var swap = function (p0, p1) {
@@ -23,4 +22,13 @@ var swapXY = function (p) {
 
 var copy = function (p) {
     return {x: p.x, y: p.y};
+};
+
+
+var getMousePos = function (canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
 };
