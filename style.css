@@ -1,0 +1,20 @@
+body {
+    margin-top: 50px;
+    padding: 0;
+}
+#myCanvas {
+    height: 400px;
+    width: 800px;
+    border: 1px solid #000000;
+    float: left;
+    margin-left: 20px;
+}
+#controls {
+    height: 400px;
+    float: left;
+    margin-left: 20px;
+}
+button {
+    font-size: 20px;
+    width: 80px;
+}
