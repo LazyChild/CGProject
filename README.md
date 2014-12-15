@@ -47,10 +47,146 @@
 #### 画线
 采用了`Bresenham`算法。
 
+    var drawLine = function (context, p0, p1, color) {
+        var steep = Math.abs(p1.y - p0.y) > Math.abs(p1.x - p0.x);
+        if (steep) {
+            p0 = swapXY(p0);
+            p1 = swapXY(p1);
+        }
+        if (p0.x > p1.x) {
+            swap(p0, p1);
+        }
+    
+        var dx = p1.x - p0.x;
+        var dy = Math.abs(p1.y - p0.y);
+        var k = dy / dx;
+        var e = -0.5;
+        var p = {x: p0.x, y: p0.y};
+    
+        var yStep = p0.y < p1.y ? 1 : -1;
+    
+        for (var i = 0; i <= dx; ++i) {
+            drawPixel(context, steep ? swapXY(p) : p, color);
+    
+            ++p.x;
+            e += k;
+            if (e >= 0) {
+                p.y += yStep;
+                e -= 1;
+            }
+        }
+    };
+
 #### 区域填充
 采用了扫描线算法。
 
+    var initEdgeTable = function (border, points) {
+        var edgeTable = {};
+    
+        var n = points.length;
+        for (var i = 0; i < n; ++i) {
+            var p1 = points[i];
+            var p2 = points[(i + 1) % n];
+            var p3 = points[(i + n - 1) % n];
+            var p4 = points[(i + 2) % n];
+    
+            if (p1.y !== p2.y) {
+                var node = {};
+                node.k = (p1.x - p2.x) / (p1.y - p2.y);
+                if (p2.y > p1.y) {
+                    node.x = p1.x;
+    
+                    if (p4.y >= p2.y) {
+                        node.yMax = p2.y - 1;
+                    } else {
+                        node.yMax = p2.y;
+                    }
+    
+                    if (!edgeTable.hasOwnProperty(p1.y)) {
+                        edgeTable[p1.y] = [];
+                    }
+                    edgeTable[p1.y].push(node);
+                } else {
+                    node.x = p2.x;
+    
+                    if (p3.y >= p1.y) {
+                        node.yMax = p1.y - 1;
+                    } else {
+                        node.yMax = p1.y;
+                    }
+    
+                    if (!edgeTable.hasOwnProperty(p2.y)) {
+                        edgeTable[p2.y] = [];
+                    }
+                    edgeTable[p2.y].push(node);
+                }
+            }
+        }
+    
+        return edgeTable;
+    };
+    
+    var scanLineFill = function (border, edgeTable, pixels, color) {
+        var activeEdgeTable = [];
+    
+        for (var y = border.y0; y <= border.y1; ++y) {
+            var i;
+            // Add new edges
+            if (edgeTable.hasOwnProperty(y)) {
+                for (i = 0; i < edgeTable[y].length; ++i) {
+                    activeEdgeTable.push(edgeTable[y][i]);
+                }
+            }
+            activeEdgeTable.sort(comparator);
+    
+            // Fill each segments
+            var parity = 0;
+            for (i = 0; i < activeEdgeTable.length - 1; ++i) {
+                parity = 1 - parity;
+                if (parity !== 0) {
+                    var fromX = Math.ceil(activeEdgeTable[i].x);
+                    var toX = Math.floor(activeEdgeTable[i + 1].x);
+                    for (var x = fromX; x <= toX; ++x) {
+                        setPixel(pixels, border, {x: x, y: y}, color);
+                    }
+                }
+            }
+    
+            // Remove edges which y-max is out of range
+            var newAET = [];
+            for (i = 0; i < activeEdgeTable.length; ++i) {
+                var node = activeEdgeTable[i];
+                if (node.yMax !== y) {
+                    node.x += node.k;
+                    newAET.push(node);
+                }
+            }
+            activeEdgeTable = newAET;
+        }
+    };
+
 ### 3D立方体旋转
+
+        this.draw = function (canvas) {
+            var context = canvas.getContext("2d");
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            var center = {x: canvas.width / 2, y: canvas.height / 2};
+    
+            for (var i = 0; i < this.surfaces.length; ++i) {
+                var surface = this.surfaces[i];
+                var points = [];
+                var sumZ = 0;
+                for (var j = 0; j < surface.v.length; ++j) {
+                    var point = this.points[surface.v[j]];
+                    points.push({x: Math.floor(point.x + center.x), y: Math.floor(point.y + center.y)});
+                    sumZ += point.z;
+                }
+                if (sumZ > 0) {
+                    drawPolygon(canvas, points, surface.color);
+                }
+            }
+        };
+
 #### 画立方体
 立方体在屏幕上显示`xy`平面的投影。投影后确定显示的面（后面提到），然后用之前的多边形区域填充算法画出相应的四边形。
 
